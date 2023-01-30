@@ -1,82 +1,68 @@
-import React, { Component } from 'react'
+import React, {useState, useEffect} from 'react'
 import Newsitem from './Newsitem'
 import Spinner from './Spinner';
 import PropTypes from 'prop-types'
 import InfiniteScroll from "react-infinite-scroll-component";
-export default class News extends Component {
-    static defaultProps = {
-        category: 'general'
-    }
+const News = (props) => {
+    const [news, setnews] = useState([])
+    const [loading, setloading] = useState(false)
+    const [totalResults, settotalResults] = useState([])
+    const [page, setpage] = useState(1)
 
-    static propTypes = {
-        category: PropTypes.string
-    }
+    
 
-    Capitalize(str) {
+    const Capitalize = (str) => {
         return str.charAt(0).toUpperCase() + str.slice(1);
     }
+    document.title = `${Capitalize(props.category)} - News`;
 
-    constructor(props) {
-        super(props);
-        this.state = {
-            news: [],
-            loading: false,
-            totalResults: [],
-            page: 1
+    const undatenews = async () => {
+        props.changrProgress(10);
+        const url = `https://newsapi.org/v2/top-headlines?country=in&category=${props.category}&apiKey=${props.apikey}&page=1&pageSize=${props.pagesize}`;
+        let data = await fetch(url);
+        let orginaljson = await data.json();
+        setnews(orginaljson.articles);
+        settotalResults(orginaljson.totalResults);
+        setloading(false);
+        props.changrProgress(100);
+    }
+
+    useEffect(() => {
+        return () => {
+            undatenews()
         }
-        document.title = `${this.Capitalize(this.props.category)} - News`;
-    }
+    }, [])
 
 
-    undatenews = async () => {
-        this.props.changrProgress(10);
-        const url = `https://newsapi.org/v2/top-headlines?country=in&category=${this.props.category}&apiKey=${this.props.apikey}&page=1&pageSize=${this.props.pagesize}`;
+    const fetchMoreData = async () => {
+        const url = `https://newsapi.org/v2/top-headlines?country=in&category=${props.category}&apiKey=${props.apikey}&page=${page + 1}&pageSize=${props.pagesize}`;
+        setpage(page + 1)
         let data = await fetch(url);
         let orginaljson = await data.json();
-        this.setState({
-            news: orginaljson.articles,
-            totalResults: orginaljson.totalResults,
-            loading: false
-        });
-        this.props.changrProgress(100);
-    }
-    async componentDidMount() {
-        this.undatenews();
-    }
-
-    fetchMoreData = async() =>{
-        const url = `https://newsapi.org/v2/top-headlines?country=in&category=${this.props.category}&apiKey=${this.props.apikey}&page=${this.state.page + 1}&pageSize=${this.props.pagesize}`;
-        this.setState({page: this.state.page + 1})
-        let data = await fetch(url);
-        let orginaljson = await data.json();
-        this.setState({
-            news: this.state.news.concat(orginaljson.articles),
-            totalResults: orginaljson.totalResults,
-        });
+        setnews(news.concat(orginaljson.articles));
+        settotalResults(orginaljson.totalResults);
     }
 
 
 
-    render() {
-        return (
-            <>
-                <div className='container'>
-                    {this.state.loading && <Spinner />}
-                    <h2 className='' style={{marginTop: '90px'}}>News Apps</h2>
-                    <hr />
-                    <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.</p>
+    return (
+        <>
+            <div className='container'>
+                {loading && <Spinner />}
+                <h2 className='' style={{ marginTop: '90px' }}>News Apps</h2>
+                <hr />
+                <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.</p>
 
-                    <InfiniteScroll
-                        dataLength={this.state.news.length}
-                        next={this.fetchMoreData}
-                        hasMore={this.state.news.length !== this.state.totalResults}
-                        loader={<Spinner />}
-                    >
-                        
-                <div className='container'>
+                <InfiniteScroll
+                    dataLength={news.length}
+                    next={fetchMoreData}
+                    hasMore={news.length !== totalResults}
+                    loader={<Spinner />}
+                >
+
+                    <div className='container'>
                         <div className='row'>
-
-                            {this.state.news.map((element, index) => {
+                            {news.map((element, index) => {
                                 return (
                                     <div className='col-md-3 mb-4' key={index}>
                                         <Newsitem
@@ -92,12 +78,20 @@ export default class News extends Component {
                             })}
 
                         </div>
-                        </div>
-                    </InfiniteScroll>
-                    {/* <button disabled={this.state.page <= 1} className='btn btn-primary' onClick={this.prev}>Previous</button>
-                    <button disabled={this.state.page + 1 > Math.ceil(this.state.totalResults / this.props.pagesize)} className='btn btn-primary' onClick={this.next}>Next</button> */}
-                </div>
-            </>
-        )
-    }
+                    </div>
+                </InfiniteScroll>
+            </div>
+        </>
+    )
 }
+
+
+News.propTypes = {
+    category: PropTypes.string
+}
+
+News.defaultProps = {
+    category: 'general'
+}
+
+export default News;
